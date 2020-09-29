@@ -49,7 +49,7 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  let longURL = ""; // const longURL = `/urls/${shortURL}`;
+  let longURL = ""; 
   const shortURL = req.params.shortURL;
   for (url in urlDatabase) {
     if (shortURL === url) {
