@@ -2,15 +2,15 @@ const express = require('express');
 const app = express();
 const PORT = 8080;
 
-function generateRandomString() {
-  var result           = '';
-  var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charactersLength = characters.length;
-  for ( var i = 0; i < 6; i++ ) {
-     result += characters.charAt(Math.floor(Math.random() * charactersLength));
+const generateRandomString = function() {
+  let result           = '';
+  let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let charactersLength = characters.length;
+  for (let i = 0; i < 6; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
   }
   return result;
-}
+};
 app.set("view engine", "ejs");
 
 const urlDatabase = {
@@ -51,10 +51,10 @@ app.get("/urls/:shortURL", (req, res) => {
 app.get("/u/:shortURL", (req, res) => {
   let longURL = ""; // const longURL = `/urls/${shortURL}`;
   const shortURL = req.params.shortURL;
-  for (url in urlDatabase) {
+  for (let url in urlDatabase) {
     if (shortURL === url) {
-      longURL = urlDatabase[url]
-    } 
+      longURL = urlDatabase[url];
+    }
   }
   res.redirect(longURL);
 });
@@ -63,13 +63,23 @@ app.get("/u/:shortURL", (req, res) => {
 app.post("/urls", (req, res) => {
   console.log(req.body);
   let shortURL = generateRandomString();
-  urlDatabase[shortURL] = req.body.longURL
+  urlDatabase[shortURL] = req.body.longURL;
   res.redirect(`/urls/${shortURL}`);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
+  res.redirect("/urls");
+});
+
+app.post("/urls/:shortURL/edit", (req, res) => {
+  const shortURL = req.params.shortURL;
+  console.log(shortURL);
+  // extract long url from form
+  const longURL = req.body.longURL;
+  // update long url in urlDatabase
+  urlDatabase[shortURL] = longURL;
   res.redirect("/urls");
 });
 
