@@ -3,6 +3,8 @@ const app = express();
 const PORT = 8080;
 const cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
+const bcrypt = require('bcrypt');
+
 
 app.set("view engine", "ejs");
 app.use(bodyParser.urlencoded({extended: true}));
@@ -25,6 +27,12 @@ const keyCheck = (email, userDatabase) => {
     if (user.email === email) {
       return user;
     }
+  }
+  return false;
+};
+const passCheck = (user, password) => {
+    if (bcrypt.compareSync(password, user.password)) {
+      return true;
   }
   return false;
 };
@@ -173,14 +181,18 @@ app.post("/urls/:id", (req, res) => {
 
 app.post("/login", (req, res) => {  
   const email = req.body.username;
+  const password = req.body.password;
   const user = keyCheck(email, users)
+  const userPass = passCheck(user, password)
+  console.log('user', user)
+  console.log('userPass', userPass)
   if(user){
+    if(userPass){
     res.cookie('user_id', user.id);
     res.redirect("/urls")
-  } else  {
-    res.status(403).json({message: "user not found!"})
-
-  }
+    }
+  }  
+  res.status(403).json({message: "incorrect username/password!"})
 });
 
 app.post("/logout", (req, res) => {
@@ -194,8 +206,9 @@ app.post("/logout", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const hashedPassword = bcrypt.hashSync(password, 10);
   const user = keyCheck(email, users)
-  if (!email || !password) {
+  if (!email || !hashedPassword) {
     res.status(400).json({message: 'Bad Request no username/password provided'})
   } 
   else if (user){
@@ -207,7 +220,7 @@ app.post("/register", (req, res) => {
     users[userID] = {
       id: userID, 
       email, 
-      password
+      password: hashedPassword,
     };
     res.cookie('user_id', userID);
     res.redirect('/urls');
