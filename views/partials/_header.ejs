@@ -15,7 +15,7 @@
     <form class="form-inline" action="/logout" method="POST">
       <div class="form-group mb-2">
         <label for="login" class="nav-item nav-link">Logged in as: <%= user.email %></label> 
-        <a class="nav-item nav-link" href="/urls"">Logout</a>
+        <input type="submit" value="Logout">
       </div>
      </form>     
     <% } else { %>

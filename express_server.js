@@ -25,15 +25,35 @@ const keyCheck = (email, userDatabase) => {
     if (user.email === email) {
       return user;
     }
-    return false;
   }
+  return false;
+};
+
+const idCheck = (id, userDatabase) => {
+  for (let userKey in userDatabase) {
+    let user = userDatabase[userKey];
+    if (user.id === id) {
+      return user;
+    }
+  }
+  return false;
+};
+
+const URLCheck = (userID) => {
+  let newObj = {};
+  for (let shortURL in urlDatabase) {
+    if (userID === urlDatabase[shortURL]['userID']) {
+      newObj[shortURL] = urlDatabase[shortURL]['longURL']; 
+    }
+  }
+  return newObj;
 };
 
 
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  "b2xVn2": { longURL: "http://www.lighthouselabs.ca", userID: "aJ481W" },
+  "9sm5xK": { longURL: "http://www.google.com", userID: "aJ481W" }
 };
 
 
@@ -63,22 +83,41 @@ app.get("/hello", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  const id = req.cookies['user_id'];
+  const user = idCheck(id, users);
+  if (!user) {
+    res.status(403).json({message: "Please login or register!"})
+  }
+  const userURL = URLCheck(req.cookies['user_id'])
   const user_id = users[req.cookies['user_id']];
-  const templateVars = { urls: urlDatabase, user: user_id };
+  // const shortURL = req.params.shortURL;
+  const templateVars = { urls: userURL, user: user_id  };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
+  const id = req.cookies['user_id'];
+  const user = idCheck(id, users);
+  if (!user) {
+    res.redirect('/login');
+  } else {
   const user_id = users[req.cookies['user_id']];
   const templateVars = { user: user_id };
   res.render("urls_new", templateVars);
+  }
 });
 
 app.get("/urls/:shortURL", (req, res) => {
+  const id = req.cookies['user_id'];
+  const user = idCheck(id, users);
+  if (!user) {
+    res.status(403).json({message: "Please login or register!"})
+  }
   const user_id = users[req.cookies['user_id']];
   const shortURL = req.params.shortURL;
-  const longURL = urlDatabase[shortURL];
+  const longURL = urlDatabase[shortURL]['longURL'];
   const templateVars = { shortURL, longURL: longURL, user: users[user_id] };
+  
   res.render("urls_show", templateVars);
 });
 
@@ -104,11 +143,15 @@ app.get("/u/:shortURL", (req, res) => {
 app.post("/urls", (req, res) => {
   let shortURL = generateRandomString();
   const longURL = req.body.longURL;
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = { longURL: longURL, userID: req.cookies['user_id'] };
   res.redirect(`/urls/${shortURL}`);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) => {
+  const userURL = URLCheck(req.cookies['user_id'])
+  if (!userURL) {
+    res.status(403).json({message: "Does not have access"})
+  }
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
   res.redirect("/urls");
@@ -116,11 +159,15 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 // Edit URLs
 app.post("/urls/:id", (req, res) => {
+  const userURL = URLCheck(req.cookies['user_id'])
+  if (!userURL) {
+    res.status(403).json({message: "Does not have access"})
+  }
   const shortURL = req.params.id;
   // extract long url from form
   const longURL = req.body.longURL;
   // update long url in urlDatabase
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = {longURL: req.body.longURL , userID: req.cookie['user_id']};
   res.redirect("/urls/");
 });
 
@@ -137,6 +184,9 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
+  // const email = req.body.username;
+  // console.log("req.body", req.body);
+  // const user = keyCheck(email, users)
   res.clearCookie('user_id');
   res.redirect('/urls');
 });
@@ -144,11 +194,15 @@ app.post("/logout", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const user = keyCheck(email, users)
   if (!email || !password) {
     res.status(400).json({message: 'Bad Request no username/password provided'})
-  } else if (keyCheck(email, users)){
+  } 
+  else if (user){
     res.status(400).json({message: 'Bad Request email already exists'})
-  } else {
+   return;
+  } 
+  else {
     let userID = generateRandomString();
     users[userID] = {
       id: userID, 
@@ -156,6 +210,7 @@ app.post("/register", (req, res) => {
       password
     };
     res.cookie('user_id', userID);
+    res.redirect('/urls');
   };
 });
 
